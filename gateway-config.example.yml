@@ -1,0 +1,17 @@
+
+listener_address: "127.0.0.1:8080"
+ha_url: "http://homeassistant.local:8123/"
+ha_token: "HA_LONG_LIVING_TOKEN"
+
+clients:
+  - name: "Test"
+    token_hash: "50d858e0985ecc7f60418aaf0cc5ab587f42c2570a884095a9e8ccacd0f6545c"
+    entities:
+      - name: "*"
+
+  - name: "WifiGadget"
+    token_hash: "5fb1679e08674059b72e271d8902c11a127bb5301b055dc77fa03932ada56a56"
+    can_write: true
+    entities:
+      - name: "binary_sensors.light_switch"
+      - name: "binary_sensors.door_contact"
