@@ -71,7 +71,7 @@ func TestProxy(t *testing.T) {
 	defer server.Close()
 
 	getReq, _ := http.NewRequest("GET", server.FrontendURL()+"/api/states/", nil)
-	getReq.Header.Add("Authorization", "Bearer TEST")
+	getReq.Header.Add("Authorization", "Bearer hagakey_TEST")
 	res, err := server.Client().Do(getReq)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
@@ -84,7 +84,7 @@ func TestProxy(t *testing.T) {
 	}
 
 	postReq, _ := http.NewRequest("POST", server.FrontendURL()+"/api/states/", nil)
-	postReq.Header.Add("Authorization", "Bearer TEST")
+	postReq.Header.Add("Authorization", "Bearer hagakey_TEST")
 	res, err = server.Client().Do(postReq)
 	if err != nil {
 		t.Fatalf("Post: %v", err)
@@ -102,7 +102,7 @@ func TestForbiddenPaths(t *testing.T) {
 	defer server.Close()
 
 	getReq, _ := http.NewRequest("GET", server.FrontendURL()+"/bad-url", nil)
-	getReq.Header.Add("Authorization", "Bearer TEST")
+	getReq.Header.Add("Authorization", "Bearer hagakey_TEST")
 	res, err := server.Client().Do(getReq)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
@@ -112,7 +112,7 @@ func TestForbiddenPaths(t *testing.T) {
 	}
 
 	postReq, _ := http.NewRequest("POST", server.FrontendURL(), nil)
-	postReq.Header.Add("Authorization", "Bearer TEST")
+	postReq.Header.Add("Authorization", "Bearer hagakey_TEST")
 	res, err = server.Client().Do(postReq)
 	if err != nil {
 		t.Fatalf("Post: %v", err)
@@ -145,8 +145,18 @@ func TestWrongAuth(t *testing.T) {
 		t.Fatalf("Wrong status code: %d, expected %d", res.StatusCode, http.StatusForbidden)
 	}
 
+	getReq, _ = http.NewRequest("GET", server.FrontendURL()+"/api/states/abc", nil)
+	getReq.Header.Add("Authorization", "Bearer hagakey_ABC")
+	res, err = server.Client().Do(getReq)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("Wrong status code: %d, expected %d", res.StatusCode, http.StatusForbidden)
+	}
+
 	postReq, _ := http.NewRequest("POST", server.FrontendURL()+"/api/states/binary_sensor.light_switch", nil)
-	postReq.Header.Add("Authorization", "Bearer HomeAssistant")
+	postReq.Header.Add("Authorization", "Bearer hagakey_HomeAssistant")
 	res, err = server.Client().Do(postReq)
 	if err != nil {
 		t.Fatalf("Post: %v", err)

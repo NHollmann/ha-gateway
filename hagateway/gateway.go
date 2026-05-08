@@ -45,6 +45,7 @@ func New(remoteUrl string, authToken string, clients Clients) Gateway {
 
 const MSG_FORBIDDEN = "Forbidden"
 const PATH_PREFIX = "/api/states/"
+const AUTHORIZATION_PREFIX = "Bearer hagakey_"
 
 func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	path := req.URL.EscapedPath()
@@ -55,13 +56,13 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	authHeader := req.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	if !strings.HasPrefix(authHeader, AUTHORIZATION_PREFIX) {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(MSG_FORBIDDEN))
 		return
 	}
 
-	authToken := strings.TrimPrefix(authHeader, "Bearer ")
+	authToken := strings.TrimPrefix(authHeader, AUTHORIZATION_PREFIX)
 	client := g.clients.FindByToken(authToken)
 	if client == nil {
 		w.WriteHeader(http.StatusForbidden)
