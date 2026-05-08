@@ -1,5 +1,5 @@
 
-listener_address: "127.0.0.1:8080"
+listener_address: "0.0.0.0:8080"
 ha_url: "http://homeassistant.local:8123/"
 ha_token: "HA_LONG_LIVING_TOKEN"
 
