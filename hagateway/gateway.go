@@ -50,6 +50,7 @@ const AUTHORIZATION_PREFIX = "Bearer hagakey_"
 func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	path := req.URL.EscapedPath()
 	if !strings.HasPrefix(path, PATH_PREFIX) {
+		log.Printf("Error: Forbidden (%s): Invalid path prefix", req.RemoteAddr)
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(MSG_FORBIDDEN))
 		return
@@ -57,6 +58,7 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	authHeader := req.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, AUTHORIZATION_PREFIX) {
+		log.Printf("Error: Forbidden (%s): Missing authorization header", req.RemoteAddr)
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(MSG_FORBIDDEN))
 		return
@@ -65,6 +67,7 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	authToken := strings.TrimPrefix(authHeader, AUTHORIZATION_PREFIX)
 	client := g.clients.FindByToken(authToken)
 	if client == nil {
+		log.Printf("Error: Forbidden (%s): Found no client with matching api key", req.RemoteAddr)
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte(MSG_FORBIDDEN))
 		return
@@ -77,12 +80,16 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			log.Printf("GET (%s) '%s'", client.Name, entity)
 			g.baseHandler.ServeHTTP(w, req)
 			return
+		} else {
+			log.Printf("Error: Forbidden (%s): GET not allowed on entity '%s'", client.Name, entity)
 		}
 	case "POST":
 		if client.CanWriteEntity(entity) {
 			log.Printf("POST (%s) '%s'", client.Name, entity)
 			g.baseHandler.ServeHTTP(w, req)
 			return
+		} else {
+			log.Printf("Error: Forbidden (%s): POST not allowed on entity '%s'", client.Name, entity)
 		}
 	}
 
