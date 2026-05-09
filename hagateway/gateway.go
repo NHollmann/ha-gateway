@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 )
 
 func addCORS(handler http.Handler) http.Handler {
@@ -19,11 +20,14 @@ func addCORS(handler http.Handler) http.Handler {
 
 type Gateway interface {
 	http.Handler
+	Ping() error
 }
 
 type gateway struct {
 	baseHandler http.Handler
 	clients     Clients
+	serverURL   *url.URL
+	authToken   string
 }
 
 func New(remoteUrl string, authToken string, clients Clients) Gateway {
@@ -40,6 +44,8 @@ func New(remoteUrl string, authToken string, clients Clients) Gateway {
 				pr.Out.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authToken))
 			},
 		}),
+		serverURL: serverUrl,
+		authToken: authToken,
 	}
 }
 
@@ -95,4 +101,34 @@ func (g *gateway) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusForbidden)
 	w.Write([]byte(MSG_FORBIDDEN))
+}
+
+func (g *gateway) Ping() error {
+	if g.serverURL == nil {
+		return fmt.Errorf("no server URL configured")
+	}
+
+	pingURL := *g.serverURL
+	pingURL.Path = "/api/"
+
+	req, err := http.NewRequest("GET", pingURL.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", g.authToken))
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusMultiStatus {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+	return nil
 }

@@ -1,18 +1,43 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 
 	"github.com/NHollmann/ha-gateway/hagateway"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var rootCmd = &cobra.Command{
+	Use:   "ha-gateway",
+	Short: "A HomeAssistant API Gateway",
+	Long: `ha-gateway is small server that allows you to restrict access to the HomeAssistant API.
+
+Instead of giving out your long living token to different servers, create custom API keys with limited
+access to different entities.`,
+}
+
+var serverCmd = &cobra.Command{
+	Use:   "server",
+	Short: "Run server",
+	Long:  "Run the API server",
+	Run:   runServer,
+}
+
+var pingCmd = &cobra.Command{
+	Use:   "ping",
+	Short: "Ping HomeAssistant",
+	Long:  "Try to ping HomeAssistant to check its accessible",
+	Run:   runPing,
+}
+
+var createKeyCmd = &cobra.Command{
+	Use:   "create-key",
+	Short: "Create a new API Key",
+	Long:  "Create a new random API Key and the associated hash",
+	Run:   runCreateKey,
+}
 
 type config struct {
 	ListenAddr string `mapstructure:"listener_address"`
@@ -21,57 +46,20 @@ type config struct {
 	Clients    []hagateway.Client
 }
 
-func main() {
-	viper.SetConfigName("gateway-config")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("/etc/ha-gateway")
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatalf("fatal error config file: %v", err)
-	}
-
-	var conf config
-	err = viper.Unmarshal(&conf)
-	if err != nil {
-		log.Fatalf("unable to decode into struct: %v", err)
-	}
-
-	clients := hagateway.Clients{}
-	for _, client := range conf.Clients {
-		clients.Add(&client)
-	}
-	gateway := hagateway.New(conf.HAURL, conf.HAToken, clients)
-
-	mux := http.NewServeMux()
-	mux.Handle("/api/states/", gateway)
-
-	runServer(conf.ListenAddr, mux)
+func init() {
+	rootCmd.AddCommand(serverCmd, pingCmd, createKeyCmd)
+	setupConfig()
 }
 
-func runServer(addr string, handler http.Handler) {
-	log.Printf("Start server on %s...", addr)
-	server := &http.Server{
-		Addr:    addr,
-		Handler: handler,
+func setupConfig() {
+	viper.SetConfigName("gateway-config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/ha-gateway")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatalln(err)
 	}
-	go func() {
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Could not start server: %v", err)
-		}
-	}()
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-
-	<-stop
-
-	log.Println("Graceful shutdown initiated...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Graceful shutdown fauled: %v", err)
-	}
-
-	log.Println("Server stopped.")
 }

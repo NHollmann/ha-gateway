@@ -13,6 +13,7 @@ const BACKEND_RESPONSE = "TEST"
 
 type testServer struct {
 	destination *httptest.Server
+	gateway     hagateway.Gateway
 	frontend    *httptest.Server
 }
 
@@ -56,6 +57,7 @@ func newTestServer(t *testing.T) *testServer {
 
 	return &testServer{
 		destination: destinationServer,
+		gateway:     proxyHandler,
 		frontend:    frontend,
 	}
 }
@@ -163,5 +165,15 @@ func TestWrongAuth(t *testing.T) {
 	}
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("Wrong status code: %d, expected %d", res.StatusCode, http.StatusForbidden)
+	}
+}
+
+func TestPing(t *testing.T) {
+	server := newTestServer(t)
+	defer server.Close()
+
+	err := server.gateway.Ping()
+	if err != nil {
+		t.Fatalf("Ping: %v", err)
 	}
 }

@@ -66,3 +66,4 @@ USER appuser:appuser
 # Run the binary.
 WORKDIR /opt/
 ENTRYPOINT ["./ha-gateway"]
+CMD ["server"]
