@@ -1,7 +1,9 @@
 package hagateway
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"strings"
 )
@@ -73,4 +75,18 @@ func (cs *Clients) FindByToken(token string) *Client {
 		return nil
 	}
 	return client
+}
+
+const CLIENT_KEY_LENGTH = 32
+
+func ClientGenerateKey() (string, string, error) {
+	bytes := make([]byte, CLIENT_KEY_LENGTH)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", "", fmt.Errorf("failed to generate API key: %w", err)
+	}
+	apiKey := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(bytes)
+	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(apiKey)))
+	apiKey = "hagakey_" + apiKey
+
+	return apiKey, tokenHash, nil
 }
